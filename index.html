@@ -2,100 +2,328 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>ESP32 Smart Control</title>
+<title>HOME DEVICES</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<style>
-body{margin:0;font-family:Arial,sans-serif;background:#0f0f0f;color:#fff;text-align:center;}
-h2{padding:15px;}
-button{margin:10px;padding:10px 15px;border:none;border-radius:6px;cursor:pointer;font-size:16px;}
-.on{background:#00c853;color:#fff;}
-.off{background:#d50000;color:#fff;}
 
-/* ===== FAN ANIMATION ===== */
-.fan-wrap{width:60px;height:60px;margin:10px auto;position:relative;}
-.fan{width:100%;height:100%;position:relative;transition: transform 0.2s linear;}
-.fan-center{width:8px;height:8px;background:#fff;border-radius:50%;position:absolute;top:26px;left:26px;z-index:2;}
-.blade{width:28px;height:6px;background:#ccc;position:absolute;top:27px;left:30px;border-radius:4px;transform-origin:0% 50%;}
+<style>
+:root{
+  --glass: rgba(255,255,255,0.08);
+  --neon: #00ffd5;
+  --bg-dark: radial-gradient(circle at top,#1b1b2f,#0a0a14);
+  --bg-light: radial-gradient(circle at top,#ffffff,#e0e0e0);
+  --text-dark:#00ffde;
+  --text-light:#333;
+}
+
+body{
+  margin:0;
+  font-family:'Segoe UI', Arial;
+  background: var(--bg-dark);
+  color:#fff;
+  text-align:center;
+  overflow-x:hidden;
+  transition: background 0.5s, color 0.5s;
+}
+
+/* ===== HEADER ===== */
+h1{
+  margin:30px 0 20px;
+  font-size:3em;
+  letter-spacing:3px;
+  color:var(--text-dark);
+  text-shadow:0 0 10px var(--neon),0 0 20px var(--neon),0 0 40px #00bfa5;
+  animation:shimmer 3s linear infinite;
+}
+@keyframes shimmer{
+  0%,100%{text-shadow:0 0 10px var(--neon),0 0 20px var(--neon),0 0 40px #00bfa5;}
+  50%{text-shadow:0 0 20px var(--neon),0 0 40px var(--neon),0 0 80px #00bfa5;}
+}
+
+/* ===== THEME SWITCH ===== */
+.theme-switch{
+  position:absolute;
+  top:20px;
+  right:20px;
+  cursor:pointer;
+  padding:8px 12px;
+  border-radius:20px;
+  background:#00ffd5;
+  color:#000;
+  font-weight:bold;
+  box-shadow:0 0 10px #00ffd5;
+}
+
+/* ===== CARD ===== */
+.container{
+  display:flex;
+  flex-wrap:wrap;
+  justify-content:center;
+  gap:25px;
+  margin-bottom:30px;
+}
+.card{
+  background: var(--glass);
+  backdrop-filter: blur(12px);
+  border-radius:20px;
+  padding:20px;
+  width:260px;
+  box-shadow:0 15px 50px rgba(0,0,0,.6);
+  transform: perspective(800px) rotateX(8deg);
+  transition: transform 0.4s, box-shadow 0.3s;
+  animation:float 3s ease-in-out infinite alternate;
+  cursor:pointer;
+}
+.card:hover{
+  transform: perspective(800px) rotateX(0deg) scale(1.08);
+  box-shadow:0 20px 60px rgba(0,255,255,0.5);
+}
+@keyframes float{
+  0%{transform: translateY(0px);}
+  100%{transform: translateY(-10px);}
+}
+
+/* ===== BUTTON ===== */
+button{
+  padding:10px 20px;
+  margin:8px 5px;
+  border:none;
+  border-radius:25px;
+  font-size:16px;
+  cursor:pointer;
+  color:#000;
+  background:#e0e0e0;
+  transition:.3s;
+}
+button:hover{
+  transform:scale(1.12) rotate(-2deg);
+  box-shadow:0 0 20px #00ffd5,0 0 40px #00ffd5;
+}
+button:active{
+  transform:scale(0.95);
+  box-shadow:0 0 12px #00ffd5 inset;
+}
+.onBtn{background:#00ff9c;}
+.offBtn{background:#ff5252;}
+
+/* ===== LED BULB ===== */
+.bulb{
+  width:38px;height:38px;
+  margin:10px auto;
+  border-radius:50%;
+  background:#333;
+  box-shadow: inset -4px -4px 8px rgba(0,0,0,.6);
+  transition:0.3s;
+}
+.bulb-on{
+  background:#fff5b0;
+  box-shadow:0 0 20px #fff5b0,0 0 40px #ffd740,0 0 60px #ffc400;
+  animation:flicker 0.15s infinite alternate, pulse 2s infinite;
+}
+.bulb:hover{
+  box-shadow:0 0 30px #fff5b0,0 0 60px #ffd740,0 0 90px #ffc400;
+}
+@keyframes flicker{from{opacity:.85} to{opacity:1;}}
+@keyframes pulse{0%,100%{box-shadow:0 0 20px #fff5b0,0 0 40px #ffd740,0 0 60px #ffc400;}50%{box-shadow:0 0 30px #fff5b0,0 0 60px #ffd740,0 0 90px #ffc400;}}
+
+/* ===== FAN ===== */
+.fan-wrap{width:80px;height:80px;margin:10px auto;position:relative;}
+.fan{width:100%;height:100%;position:relative;z-index:2;}
+.blade{
+  width:36px;height:8px;background:#bbb;
+  position:absolute;top:36px;left:40px;
+  border-radius:5px;
+  transform-origin:0% 50%;
+}
 .blade:nth-child(1){transform:rotate(0deg);}
 .blade:nth-child(2){transform:rotate(120deg);}
 .blade:nth-child(3){transform:rotate(240deg);}
-.fan-on{animation:spin 1s linear infinite;}
-@keyframes spin{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}
+.fan-on{animation:spin 0.6s linear infinite;}
 
-/* LED indicator */
-.led{width:16px;height:16px;border-radius:50%;background:#333;margin:15px auto;}
-.led-on{background:#00ff9c;box-shadow:0 0 8px #00ff9c,0 0 18px #00ff9c;animation: ledBlink 1s infinite alternate;}
-@keyframes ledBlink{from{opacity:0.5}to{opacity:1;}}
+/* Fan wind effect */
+.wind{
+  position:absolute;
+  width:100%; height:100%;
+  border-radius:50%;
+  top:0; left:0;
+  background: radial-gradient(circle, rgba(0,255,255,0.25), transparent 60%);
+  z-index:1;
+  display:none;
+  animation:windRotate 2s linear infinite;
+}
+.wind-on{display:block;}
+@keyframes windRotate{
+  from{transform:rotate(0deg);}
+  to{transform:rotate(360deg);}
+}
+@keyframes spin{to{transform:rotate(360deg);}}
 
-/* Plug indicator */
-.plug{width:22px;height:38px;margin:12px auto;background:#444;border-radius:4px;position:relative;}
-.plug::before,.plug::after{content:"";position:absolute;top:-6px;width:4px;height:6px;background:#555;}
-.plug::before{left:5px;}
-.plug::after{right:5px;}
-.plug-on{background:#00e676;box-shadow:0 0 10px #00e676;animation: powerPulse 1s infinite;}
-@keyframes powerPulse{0%{box-shadow:0 0 6px #00e676;}50%{box-shadow:0 0 16px #00e676;}100%{box-shadow:0 0 6px #00e676;}}
+/* ===== PLUG ===== */
+.plug{
+  width:28px;height:48px;
+  margin:10px auto;
+  background:#444;
+  border-radius:8px;
+  position:relative;
+  transition:0.3s;
+}
+.plug-on{
+  background:#00e5ff;
+  box-shadow:0 0 30px #00e5ff;
+  animation:plugPulse 0.6s infinite alternate;
+}
+.plug-on::after{
+  content:"⚡";
+  position:absolute;
+  font-size:30px;
+  left:5px;top:6px;
+  animation:flash 0.3s infinite alternate;
+}
+@keyframes flash{from{opacity:.3} to{opacity:1;}}
+@keyframes plugPulse{
+  0%{transform:scale(1);}
+  50%{transform:scale(1.05);}
+  100%{transform:scale(1);}
+}
+
+/* Particle sparks for plug */
+.spark{
+  position:absolute;
+  width:4px;height:4px;
+  background:#00ffff;
+  border-radius:50%;
+  animation:spark 0.8s linear forwards;
+}
+@keyframes spark{
+  0%{transform:translate(0,0);opacity:1;}
+  100%{transform:translate(15px,-15px);opacity:0;}
+}
 </style>
 </head>
 <body>
 
-<h2>ESP32 Smart Device Control</h2>
+<h1>HOME DEVICES</h1>
+<div class="theme-switch" onclick="toggleTheme()">🌗 Theme</div>
 
-<div>
-<p>LED:</p>
-<div class="led" id="ledIcon"></div>
-<button id="ledBtn" class="off" onclick="toggle('led')">OFF</button>
-</div>
+<div class="container">
+  <!-- LED -->
+  <div class="card" id="ledCard">
+    <h3>💡 LED</h3>
+    <div id="ledIcon" class="bulb"></div>
+    <button class="onBtn" onclick="triggerDevice('led','ON')">ON</button>
+    <button class="offBtn" onclick="triggerDevice('led','OFF')">OFF</button>
+  </div>
 
-<div>
-<p>Fan:</p>
-<div class="fan-wrap">
-  <div class="fan" id="fanIcon">
-    <div class="blade"></div>
-    <div class="blade"></div>
-    <div class="blade"></div>
-    <div class="fan-center"></div>
+  <!-- FAN -->
+  <div class="card" id="fanCard">
+    <h3>🌀 FAN</h3>
+    <div class="fan-wrap">
+      <div class="fan" id="fanIcon">
+        <div class="blade"></div>
+        <div class="blade"></div>
+        <div class="blade"></div>
+      </div>
+      <div class="wind" id="fanWind"></div>
+    </div>
+    <button class="onBtn" onclick="triggerDevice('fan','ON')">ON</button>
+    <button class="offBtn" onclick="triggerDevice('fan','OFF')">OFF</button>
+  </div>
+
+  <!-- PLUG -->
+  <div class="card" id="plugCard">
+    <h3>🔌 PLUG</h3>
+    <div id="plugIcon" class="plug"></div>
+    <div id="plugSparks"></div>
+    <button class="onBtn" onclick="triggerDevice('plug','ON')">ON</button>
+    <button class="offBtn" onclick="triggerDevice('plug','OFF')">OFF</button>
   </div>
 </div>
-<button id="fanBtn" class="off" onclick="toggle('fan')">OFF</button>
-</div>
 
-<div>
-<p>Plug:</p>
-<div class="plug" id="plugIcon"></div>
-<button id="plugBtn" class="off" onclick="toggle('plug')">OFF</button>
-</div>
+<!-- ===== SOUNDS ===== -->
+<audio id="ledSound" src="https://assets.mixkit.co/sfx/preview/mixkit-light-switch-click-2581.mp3"></audio>
+<audio id="fanSound" src="https://assets.mixkit.co/sfx/preview/mixkit-electric-fan-loop-121.mp3" loop></audio>
+<audio id="plugSound" src="https://assets.mixkit.co/sfx/preview/mixkit-electricity-zap-1687.mp3"></audio>
+<audio id="buttonClick" src="https://assets.mixkit.co/sfx/preview/mixkit-fast-button-press-1963.mp3"></audio>
+<audio id="switchOn" src="https://assets.mixkit.co/sfx/preview/mixkit-toggle-switch-on-1246.mp3"></audio>
+<audio id="switchOff" src="https://assets.mixkit.co/sfx/preview/mixkit-toggle-switch-off-1247.mp3"></audio>
+<audio id="plugLightningSound" src="https://assets.mixkit.co/sfx/preview/mixkit-lightning-strike-1667.mp3"></audio>
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 
 <script>
-const ESP32_IP = "YOUR_NGROK_OR_PUBLIC_IP"; // Replace with ngrok URL or public IP
+const firebaseConfig = {
+  apiKey:"",
+  authDomain:"espcontroller-bd521.firebaseapp.com",
+  databaseURL:"https://espcontroller-bd521-default-rtdb.firebaseio.com",
+  projectId:"espcontroller-bd521"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
 
-function toggle(device){
-    fetch(`http://${ESP32_IP}/control?device=${device}`).then(()=>updateState());
+/* SOUND ELEMENTS */
+const ledSound = document.getElementById("ledSound");
+const fanSound = document.getElementById("fanSound");
+const plugSound = document.getElementById("plugSound");
+const buttonClick = document.getElementById("buttonClick");
+const switchOn = document.getElementById("switchOn");
+const switchOff = document.getElementById("switchOff");
+const plugLightningSound = document.getElementById("plugLightningSound");
+const fanWind = document.getElementById("fanWind");
+
+/* ===== TRIGGER DEVICE ===== */
+function triggerDevice(device,state){
+  buttonClick.currentTime=0; buttonClick.play();
+  if(state==="ON"){ switchOn.currentTime=0; switchOn.play(); }
+  else{ switchOff.currentTime=0; switchOff.play(); }
+
+  db.ref(device).set(state);
+
+  if(device==="plug" && state==="ON"){
+    plugLightningSound.currentTime=0; plugLightningSound.play();
+    createPlugSparks();
+  }
 }
 
-function updateState(){
-    fetch(`http://${ESP32_IP}/state`)
-    .then(response=>response.json())
-    .then(data=>{
-        // LED
-        document.getElementById('ledBtn').textContent = data.led?'ON':'OFF';
-        document.getElementById('ledBtn').className = data.led?'on':'off';
-        document.getElementById('ledIcon').className = data.led?'led led-on':'led';
-
-        // Fan
-        document.getElementById('fanBtn').textContent = data.fan?'ON':'OFF';
-        document.getElementById('fanBtn').className = data.fan?'on':'off';
-        document.getElementById('fanIcon').className = data.fan?'fan fan-on':'fan';
-
-        // Plug
-        document.getElementById('plugBtn').textContent = data.plug?'ON':'OFF';
-        document.getElementById('plugBtn').className = data.plug?'on':'off';
-        document.getElementById('plugIcon').className = data.plug?'plug plug-on':'plug';
-    });
+/* ===== CREATE PLUG SPARKS ===== */
+function createPlugSparks(){
+  const sparksContainer = document.getElementById("plugSparks");
+  sparksContainer.innerHTML='';
+  for(let i=0;i<5;i++){
+    const spark=document.createElement('div');
+    spark.className='spark';
+    spark.style.left=`${Math.random()*20}px`;
+    spark.style.top=`${Math.random()*10}px`;
+    sparksContainer.appendChild(spark);
+    spark.addEventListener('animationend',()=>spark.remove());
+  }
 }
 
-setInterval(updateState, 1000);
-window.onload = updateState;
+/* ===== READ & ANIMATE ===== */
+db.ref().on("value",snap=>{
+  const d = snap.val() || {};
+
+  document.getElementById("ledIcon").className = d.led==="ON"?"bulb bulb-on":"bulb";
+  if(d.led==="ON") ledSound.play();
+
+  document.getElementById("fanIcon").className = d.fan==="ON"?"fan fan-on":"fan";
+  fanWind.className = d.fan==="ON"?"wind wind-on":"wind";
+  d.fan==="ON"?fanSound.play():fanSound.pause();
+
+  document.getElementById("plugIcon").className = d.plug==="ON"?"plug plug-on":"plug";
+  if(d.plug==="ON") plugSound.play();
+});
+
+/* ===== THEME SWITCH ===== */
+function toggleTheme(){
+  if(document.body.style.background=== "var(--bg-light)"){
+    document.body.style.background="var(--bg-dark)";
+    document.body.style.color="#fff";
+  } else{
+    document.body.style.background="var(--bg-light)";
+    document.body.style.color="#333";
+  }
+}
 </script>
-
 </body>
 </html>
